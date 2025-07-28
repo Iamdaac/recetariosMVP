@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useEffect, useState } from "react";
 
 const GenerarReceta = () => {
@@ -18,7 +17,7 @@ const GenerarReceta = () => {
     instrucciones: "",
   });
 
-  // Carga inicial de pacientes y doctores
+  // Cargar pacientes y doctores
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -42,13 +41,12 @@ const GenerarReceta = () => {
     fetchData();
   }, []);
 
-  // Manejar cambios de inputs
+  // Manejadores
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Cuando se selecciona un paciente
   const handleSelectPaciente = (e) => {
     const id = e.target.value;
     const paciente = pacientes.find((p) => p.id_paciente === id);
@@ -60,7 +58,6 @@ const GenerarReceta = () => {
     }));
   };
 
-  // Cuando se selecciona un doctor
   const handleSelectDoctor = (e) => {
     const id = e.target.value;
     const doctor = doctores.find((d) => d.id_doctor === id);
@@ -71,7 +68,6 @@ const GenerarReceta = () => {
     }));
   };
 
-  // Enviar receta
   const handleSubmit = async (e) => {
     e.preventDefault();
     setEstado("Enviando...");
@@ -88,6 +84,7 @@ const GenerarReceta = () => {
     };
 
     try {
+      // 1. Guardar la receta
       const res = await fetch(
         "https://q8zfwxp68j.execute-api.us-west-2.amazonaws.com/dev/recetas",
         {
@@ -97,23 +94,51 @@ const GenerarReceta = () => {
         }
       );
 
-      if (res.ok) {
-        setEstado("Receta generada y enviada exitosamente");
-        setFormData({
-          id_paciente: "",
-          nombre_pac: "",
-          correo_pac: "",
-          id_doctor: "",
-          nombre_doc: "",
-          fecha: "",
-          nombre_medicamento: "",
-          dosis: "",
-          instrucciones: "",
-        });
-      } else {
+      if (!res.ok) {
         const text = await res.text();
         setEstado("Error del servidor: " + text);
+        return;
       }
+
+      // 2. Construir el enlace al PDF (a reemplazar por URL real en producción)
+      const pdfUrl = `https://main.d2au1aklitxvxj.amplifyapp.com/`;
+
+      // 3. Enviar correo al paciente usando Lambda SES
+      const correoPayload = {
+        correo_paciente: formData.correo_pac,
+        nombre_paciente: formData.nombre_pac,
+        fecha: formData.fecha,
+        pdf_url: pdfUrl,
+      };
+
+      const correoRes = await fetch(
+        "https://q8zfwxp68j.execute-api.us-west-2.amazonaws.com/dev/enviarCorreo",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(correoPayload),
+        }
+      );
+
+      if (!correoRes.ok) {
+        const text = await correoRes.text();
+        setEstado("Receta guardada, pero error al enviar correo: " + text);
+        return;
+      }
+
+      // 4. Éxito total
+      setEstado("Receta generada y correo enviado exitosamente");
+      setFormData({
+        id_paciente: "",
+        nombre_pac: "",
+        correo_pac: "",
+        id_doctor: "",
+        nombre_doc: "",
+        fecha: "",
+        nombre_medicamento: "",
+        dosis: "",
+        instrucciones: "",
+      });
     } catch (err) {
       console.error(err);
       setEstado("Error de red o backend");
