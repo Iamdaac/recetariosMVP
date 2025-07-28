@@ -112,7 +112,7 @@ const GenerarReceta = () => {
       };
 
       const correoRes = await fetch(
-        "https://q8zfwxp68j.execute-api.us-west-2.amazonaws.com/dev/enviarCorreo",
+        "https://q8zfwxp68j.execute-api.us-west-2.amazonaws.com/dev/enviar-receta",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
